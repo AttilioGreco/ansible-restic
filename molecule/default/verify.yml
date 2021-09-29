@@ -1,0 +1,32 @@
+---
+# This is an example playbook to execute Ansible tests.
+
+- name: Verify
+  hosts: all
+  vars:
+    ansible_python_interpreter:
+  tasks:
+  - name: Verify | check postgres is running
+    ansible.builtin.systemd:
+      name: postgresql-13.service
+      state: started
+
+  - name: create sql testing file
+    ansible.builtin.copy:
+      content: |
+        CREATE USER psql_testing_user with NOSUPERUSER CREATEDB NOCREATEROLE LOGIN encrypted password 'veryS3cr3t';
+        CREATE DATABASE psql_test_db;
+        ALTER DATABASE psql_test_db OWNER TO psql_testing_user;
+      dest: /tmp/create_db_and_use.sql
+
+  - name: Verify | create pgsql users and database
+    become: yes
+    become_user: postgres
+    ansible.builtin.shell: |
+      psql -f /tmp/create_db_and_use.sql
+
+  - name: Verify | create EXTENSION postgis
+    become: yes
+    become_user: postgres
+    ansible.builtin.shell: |
+      psql psql_test_db -c 'CREATE EXTENSION postgis;'

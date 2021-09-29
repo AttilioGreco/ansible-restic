@@ -1,0 +1,11 @@
+[Unit]
+Description=Backup {{utility}} system with Restic
+
+[Service]
+User=root
+Group=root
+Type=simple
+ExecStart=/bin/bash {{ restic_binary_path }}restic/{{utility.lower()}}_backup.sh
+
+[Install]
+WantedBy=multi-user.target

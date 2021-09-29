@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+
+## Dipendenze:
+## 1) restic
+## 2) jq
+## Opzionale: fusermount (pkg: fuse su CentOS e Ubuntu). Richiesto solo per `restic mount`.
+
+
+source {{restic_backend_configurations_path}}
+
+
+## Per favore NON MODIFICATE la variabile RESTIC_PASSWORD.
+## Viceversa i backup non saranno ripristinabili.
+
+export XDG_CACHE_HOME="{{restic_XDG_CACHE_HOME}}"
+
+## L'init va dato SOLO la prima volta. Se il repo su
+## Swift esiste già, restituisce comunque errore.
+#/usr/local/bin/restic init
+
+## Esegue il backup dei database.
+
+START=$(date "+%s")
+TIMESTAMP=$(date --iso | tr -d -)
+# set check variable to 1
+I=0
+BACKUPPATH="{{restic_backup_path}}"
+mkdir -p "{{restic_backup_path}}"
+
+# Use I to check the loop
+
+function prepare_bk {
+  {{restic_backup_script}}
+}
+
+{% if 'backup' in restic_functions %}
+I=$[$I+1]
+#+-----------------------------------------------------------------------------+
+#|                            BackUp                                           |
+#+-----------------------------------------------------------------------------+
+if prepare_bk ${@};
+then
+    if {{restic_binary_path}}/restic backup {{restic_backup_path}}
+
+
+    then
+	sleep 5
+	echo restic backup ok
+	S=$[$S+1]
+    else
+        sleep 5
+	echo restic backup fail
+	S=500
+    fi
+
+else
+    "{{restic_binary_path}}/restic" backup "{{restic_backup_path}}"
+
+
+    sleep 5
+    # nel caso la funziona di prepare fallisca esegui ugualmente il backup e poi invia la notifica di fallimento
+    S=500
+fi
+{% endif %}
+
+{% if 'forget' in restic_functions %}
+I=$[$I+1]
+
+{{restic_before_forget_script}}
+
+#+-----------------------------------------------------------------------------+
+#|                            Forget                                           |
+#+-----------------------------------------------------------------------------+
+if {{restic_binary_path}}/restic forget {% for flag, flag_value in restic_forget_time.items() %}{{ flag }} {{ flag_value }} {% endfor %}
+
+then
+    sleep 5
+    echo restic forget ok
+    S=$[$S+1]
+else
+    sleep 5
+    echo restic forget fail
+    S=500
+fi
+
+{{restic_after_forget_script}}
+
+{% endif %}
+
+{% if 'check' in restic_functions %}
+I=$[$I+1]
+{{restic_before_check_script}}
+
+#+-----------------------------------------------------------------------------+
+#|                              check                                          |
+#+-----------------------------------------------------------------------------+
+if {{restic_binary_path}}/restic check
+
+then
+    sleep 5
+    echo restic check ok
+    S=$[$S+1]
+else
+    sleep 5
+    echo restic check fail
+    S=500
+fi
+
+{{restic_after_check_script}}
+
+{% endif %}
+
+{% if 'prune' in restic_functions %}
+I=$[$I+1]
+{{restic_before_prune_script}}
+
+#+-----------------------------------------------------------------------------+
+#|                             prune                                           |
+#+-----------------------------------------------------------------------------+
+if {{restic_binary_path}}/restic prune
+
+then
+    sleep 5
+    echo restic prune ok
+    S=$[$S+1]
+else
+    sleep 5
+    echo restic prune fail
+    S=500
+fi
+
+{{restic_after_prune_script}}
+
+{% endif %}
+
+{{restic_before_notification_script}}

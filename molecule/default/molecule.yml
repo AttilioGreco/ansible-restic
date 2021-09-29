@@ -1,0 +1,13 @@
+---
+name: galaxy
+driver:
+  name: libvirt
+platforms:
+  - name: backup-1
+    image_url: "http://remoteshare.4sigma.top/Rocky8.4-try-srinked.qcow2"
+    disk_size: "10G"
+    memory_size: "1" # in GB
+provisioner:
+  name: ansible
+verifier:
+  name: ansible

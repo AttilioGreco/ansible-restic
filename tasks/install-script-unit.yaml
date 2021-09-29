@@ -1,0 +1,38 @@
+- name: install script
+  template:
+    src: backup.sh.j2
+    dest: "{{restic_configuration_path}}/backup-{{utility.lower()}}.service"
+    owner: root
+    group: root
+    mode: 0544
+
+- name: install backend script
+  ansible.builtin.copy:
+    content: "{{restic_backend_configuration}}"
+    dest: "{{restic_backend_configurations_path}}"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: create systemd service unit
+  template:
+    src: backup.service.j2
+    dest: /etc/systemd/system/backup-{{utility.lower()}}.service
+    owner: root
+    group: root
+    mode: 0644
+
+- name: create systemd timer
+  template:
+    src: backup.timer.j2
+    dest: /etc/systemd/system/backup-{{utility.lower()}}.timer
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Start and Enable "backup-{{utility.lower()}}.timer"
+  systemd:
+    name: "backup-{{utility.lower()}}.timer"
+    daemon_reload: yes
+    enabled: yes
+    state: started

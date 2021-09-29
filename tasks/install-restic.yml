@@ -1,0 +1,74 @@
+---
+- name: ansible-backup | install restic | install additionas pakage
+  ansible.builtin.package:
+    name: "{{ restic_other_pakage_list }}"
+    state: present
+
+- name: ansible-backup | install restic | create restic download path in '{{ restic_download_path }}'
+  file:
+    path: "{{ restic_download_path }}"
+    state: directory
+
+- name: ansible-backup | install restic | create restic configuration path in '{{ restic_configuration_path }}/restic'
+  file:
+    path: "{{ restic_configuration_path }}/restic"
+    state: directory
+    recurse: yes
+
+- name: ansible-backup | install restic |  get tags of latest release
+  block:
+    - name: ansible-backup | install restic | get tags | get latest restic tags from github API
+      uri:
+        url: https://api.github.com/repos/restic/restic/releases/latest
+        method: GET
+        status_code: 200
+      register: github_json_response
+
+    - name: ansible-backup | install restic | get tags | parsing github api response and set restic_tag
+      # remove v from name or the life became more complicated
+      set_fact:
+        restic_tag: "{{ github_json_response.json.tag_name }}"
+
+  when: restic_version == 'latest'
+
+- name: ansible-backup | install restic |  set restic_bz2_name
+  set_fact:
+    restic_bz2_name: "{{resitc_tarball_url | urlsplit('path') | basename}}"
+
+- name: ansible-backup | install restic |  set restic name
+  set_fact:
+    restic_decompressed_name: "{{restic_bz2_name | regex_replace('.bz2$', '') }}"
+
+- name: ansible-backup | install restic | check if restic is already installed
+  stat:
+    path: "{{restic_download_path}}{{restic_decompressed_name}}"
+  register: restic_download
+
+- name: install restic ~ skip if is already installed
+  block:
+    - name: ansible-backup | install restic |  Download restic
+      get_url:
+        url: "{{ resitc_tarball_url }}"
+        dest: "{{restic_download_path}}"
+
+    - name: ansible-backup | install restic | extract restic
+      command: bzip2 -d restic_0.12.1_linux_amd64.bz2
+      args:
+        creates: restic_0.12.1_linux_amd64
+        chdir: "{{restic_download_path}}"
+  when: not restic_download.stat.exists
+
+- name: ansible-backup | install restic | give executions permission
+  ansible.builtin.file:
+    path: "{{restic_download.stat.path}}"
+    owner: root
+    group: root
+    mode: "550"
+
+- name: ansible-backup | install restic |  create link file
+  ansible.builtin.file:
+    src: "{{restic_download.stat.path}}"
+    dest: "{{ restic_binary_path }}/restic"
+    owner: root
+    group: root
+    state: link

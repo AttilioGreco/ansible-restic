@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Backup {{utility.lower()}}
+
+[Timer]
+OnCalendar={{restic_start_backup_time}}
+Persistent=true
+Unit=backup-{{utility.lower()}}.service
+
+[Install]
+WantedBy=multi-user.target

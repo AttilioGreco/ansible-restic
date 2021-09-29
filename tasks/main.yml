@@ -1,0 +1,5 @@
+---
+- name: Apply conditional to all imported tasks
+  import_tasks: install-restic.yml
+- name: install script
+  import_tasks: install-script-unit.yaml

@@ -1,0 +1,53 @@
+---
+restic_other_pakage_list:
+  - tar
+  - unzip
+  - bzip2
+  - bzip2-libs
+restic_download_path: /opt/restic/
+restic_binary_path: /usr/local/bin
+restic_configuration_path: /etc/restic
+restic_version: latest
+# restic_tag
+# keep it disable for automatical discover tarball url by github api
+restic_download_path_os: linux
+restic_architecture_path_os: amd64
+resitc_tarball_url: "https://github.com/restic/restic/releases/download/{{restic_tag}}/restic_{{restic_tag | regex_replace('^v', '') }}_{{restic_download_path_os}}_{{restic_architecture_path_os}}.bz2"
+restic_backend_configurations_path: "{{restic_configuration_path}}/s3.config"
+restic_backend_configuration: |
+  # https://restic.readthedocs.io/en/latest/080_examples.html
+  export RESTIC_REPOSITORY="s3:https://s3.amazonaws.com/restic-demo"
+  export AWS_ACCESS_KEY_ID="AKIAJAJSLTZCAZ4SRI5Q"
+  export AWS_SECRET_ACCESS_KEY="LaJtZPoVvGbXsaD2LsxvJZF/7LRi4FhT0TK4gDQq"
+  export RESTIC_PASSWORD="I9n7G7G0ZpDWA3GOcJbIuwQCGvGUBkU5"
+
+restic_backup_path: "/var/backups/restic_{{utility}}"
+
+utility: database
+
+# restic hooks
+restic_before_forget_script: ""
+restic_after_forget_script: ""
+restic_before_check_script: ""
+restic_after_check_script: ""
+restic_before_prune_script: ""
+restic_after_prune_script: ""
+restic_before_notification_script: ""
+restic_after_notification_script: ""
+
+restic_start_backup_time: "*-*-* 04:40:00"
+
+restic_backup_script: |
+  echo "start backup at {{restic_backup_path}}"
+restic_XDG_CACHE_HOME: /var/backups/restic_cache
+restic_forget_time:
+  "--keep-daily": "14"
+  "--keep-weekly": "6"
+  "--keep-monthly": "8"
+  "--keep-yearly": "5"
+
+restic_functions:
+  - backup
+  - forget
+  - check
+  - prune
