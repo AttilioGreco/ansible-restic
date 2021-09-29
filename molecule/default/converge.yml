@@ -3,6 +3,42 @@
   hosts: all
   become: true
   tasks:
-    - name: "Include backup"
-      include_role:
-        name: "ansible-backup"
+  roles:
+    - role: ansible-backup
+      restic_backup_path: /var/lib/pgsql/13/backups/
+    - role: ansible-prometheus-exporter
+      prometheus_exporter_name: node_exporter
+      prometheus_exporter_version: "1.2.2"
+      prometheus_exporter_config_flags:
+        "--collector.textfile.directory": "/tmp/prometheus_metrics"
+    # - role: ansible-postgresql
+    #   pg_config_listen_addresses: "*"
+    #   pg_config_shared_buffers: 256MB
+    #   pg_config_temp_buffers: 8MB
+    #   pg_config_work_mem: 655kB
+    #   pg_config_max_wal_size: 1GB
+    #   pg_config_min_wal_size: 4GB
+    #   pg_config_row: |
+    #     max_connections = 200
+    #     shared_buffers = 256MB
+    #     effective_cache_size = 768MB
+    #     maintenance_work_mem = 64MB
+    #     checkpoint_completion_target = 0.9
+    #     wal_buffers = 7864kB
+    #     default_statistics_target = 100
+    #     random_page_cost = 1.1
+    #     effective_io_concurrency = 200
+    #     work_mem = 655kB
+    #     min_wal_size = 1GB
+    #     max_wal_size = 4GB
+    #   pg_hba_user_options:
+    #     - contype: host
+    #       users: all
+    #       source: 127.0.0.1/32
+    #       databases: all
+    #       method: md5
+    #     - contype: host
+    #       users: all
+    #       source: 10.110.0.0/24
+    #       databases: all
+    #       method: md5

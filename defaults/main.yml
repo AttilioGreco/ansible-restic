@@ -4,15 +4,16 @@ restic_other_pakage_list:
   - unzip
   - bzip2
   - bzip2-libs
-restic_download_path: /opt/restic/
+restic_download_path: /opt/restic
+restic_script_path: "{{restic_download_path}}/script"
 restic_binary_path: /usr/local/bin
 restic_configuration_path: /etc/restic
 restic_version: latest
 # restic_tag
 # keep it disable for automatical discover tarball url by github api
-restic_download_path_os: linux
+restic_download_os: linux
 restic_architecture_path_os: amd64
-resitc_tarball_url: "https://github.com/restic/restic/releases/download/{{restic_tag}}/restic_{{restic_tag | regex_replace('^v', '') }}_{{restic_download_path_os}}_{{restic_architecture_path_os}}.bz2"
+resitc_tarball_url: "https://github.com/restic/restic/releases/download/{{restic_tag}}/restic_{{restic_tag | regex_replace('^v', '') }}_{{restic_download_os}}_{{restic_architecture_path_os}}.bz2"
 restic_backend_configurations_path: "{{restic_configuration_path}}/s3.config"
 restic_backend_configuration: |
   # https://restic.readthedocs.io/en/latest/080_examples.html
@@ -38,7 +39,40 @@ restic_after_notification_script: ""
 restic_start_backup_time: "*-*-* 04:40:00"
 
 restic_backup_script: |
-  echo "start backup at {{restic_backup_path}}"
+  echo "start postgres backup"
+  DATE="$(date +%Y%m%d%H%M)"
+  DATABASE_BACKUP_PATH={{restic_backup_path}}
+  metrics_path=/tmp/prometheus_metrics
+  mkdir -p $metrics_path
+  DATABASE_LIST=$(su - postgres -c "psql -ltA -F "," | cut -d "," -f1 | grep -vE '(template|postgres)'")
+  PROMETHEUS_RESULT_FILE=$metrics_path/prometheus_metrics.prom
+  # reset metrics
+  > $PROMETHEUS_RESULT_FILE
+  echo "postgres_backup_last_time{host=\"$HOSTNAME\"} $DATE" >> $PROMETHEUS_RESULT_FILE
+  for database in ${DATABASE_LIST}
+  do
+    echo "postgres_backup{host=\"$HOSTNAME\", database=\"$database\"} 1" >> $PROMETHEUS_RESULT_FILE
+    echo "Starting backup of ${database}"
+    start=`date +%s`
+    su - postgres -c "pg_dump $database > ${DATABASE_BACKUP_PATH}/${database}_${DATE}.sql"
+
+    if [[ "$?" == "0" ]]
+    then
+        echo "postgres_backup_database_status{host=\"$HOSTNAME\", database=\"$database\"} 1" >> $PROMETHEUS_RESULT_FILE
+        DATABASE_SIZE=$(stat --printf="%s" /${DATABASE_BACKUP_PATH}/${database}_${DATE}.sql)
+        echo "postgres_backup_database_size{host=\"$HOSTNAME\", database=\"$database\"}" $DATABASE_SIZE >> $PROMETHEUS_RESULT_FILE
+        bzip2 ${DATABASE_BACKUP_PATH}/${database}_${DATE}.sql
+        DATABASE_SIZE_COMPRESSED=$(stat --printf="%s" /${DATABASE_BACKUP_PATH}/${database}_${DATE}.sql.bz2)
+        echo postgres_backup_database_size_compressed{host=\"$HOSTNAME\", database=\"$database\"} $DATABASE_SIZE_COMPRESSED >> $PROMETHEUS_RESULT_FILE
+    else
+        echo postgres_backup_status{host=\"$HOSTNAME\", database=\"$database\"} 0 >> $PROMETHEUS_RESULT_FILE
+    fi
+    end=`date +%s`
+    runtime=$((end-start))
+    echo "postgres_database_backup_time{host=\"$HOSTNAME\", database=\"$database\"} $runtime" >> $PROMETHEUS_RESULT_FILE
+    echo "postgres_database_backup_last_run{host=\"$HOSTNAME\", database=\"$database\"} `date +%s`" >> $PROMETHEUS_RESULT_FILE
+  done
+
 restic_XDG_CACHE_HOME: /var/backups/restic_cache
 restic_forget_time:
   "--keep-daily": "14"

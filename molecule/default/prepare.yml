@@ -2,17 +2,22 @@
   hosts: all
   become: true
   tasks:
-  - name: prepare | install python3-pip
-    dnf:
-      name:
-        - python3-pip
-        - python3-devel
-        - gcc
+    - name: prepare | install base pakage pip3 and GCC
+      dnf:
+        name:
+          - python3-pip
+          - python3-devel
+          - gcc
 
-  - name: prepare | create ansible requirements
-    ansible.builtin.file:
-      path: /home/molecule/ansible
-      state: directory
-      owner: molecule
-      group: molecule
-      mode: '0644'
+    - name: Upgrade all packages
+      dnf:
+        name: "*"
+        state: latest
+
+    - name: prepare | create ansible requirements
+      ansible.builtin.file:
+        path: /home/molecule/ansible
+        state: directory
+        owner: molecule
+        group: molecule
+        mode: "0644"

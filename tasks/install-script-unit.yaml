@@ -1,7 +1,7 @@
 - name: install script
   template:
     src: backup.sh.j2
-    dest: "{{restic_configuration_path}}/backup-{{utility.lower()}}.service"
+    dest: "{{restic_script_path}}/backup-{{utility.lower()}}.sh"
     owner: root
     group: root
     mode: 0544

@@ -4,3 +4,27 @@
   become: yes
   roles:
     - role: ansible-backup
+    - role: ansible-postgresql
+      pg_config_listen_addresses: "*"
+      postgres_version: 13
+      postgis_install: true
+      postgis_version: 31
+      pg_config_listen_addresses: localhost
+      pg_config_port: 5432
+      pg_config_max_connections: 1024
+      pg_config_shared_buffers: 64MB
+      pg_config_temp_buffers: 8MB
+      pg_config_work_mem: 4MB
+      pg_config_max_wal_size: 32GB
+      pg_config_min_wal_size: 16Mb
+      pg_hba_user_options:
+        - contype: host
+          users: all
+          source: 127.0.0.1/32
+          databases: all
+          method: md5
+        - contype: host
+          users: all
+          source: 10.110.0.0/24
+          databases: all
+          method: md5

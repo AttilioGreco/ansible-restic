@@ -5,7 +5,7 @@ Description=Backup {{utility}} system with Restic
 User=root
 Group=root
 Type=simple
-ExecStart=/bin/bash {{ restic_binary_path }}restic/{{utility.lower()}}_backup.sh
+ExecStart=/bin/bash "{{restic_script_path}}/backup-{{utility.lower()}}.sh"
 
 [Install]
 WantedBy=multi-user.target

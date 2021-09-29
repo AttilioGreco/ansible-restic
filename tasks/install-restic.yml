@@ -15,6 +15,12 @@
     state: directory
     recurse: yes
 
+- name: ansible-backup | install restic | create restic configuration path in '{{ restic_configuration_path }}/restic'
+  file:
+    path: "{{ restic_script_path }}"
+    state: directory
+    recurse: yes
+
 - name: ansible-backup | install restic |  get tags of latest release
   block:
     - name: ansible-backup | install restic | get tags | get latest restic tags from github API
@@ -41,7 +47,7 @@
 
 - name: ansible-backup | install restic | check if restic is already installed
   stat:
-    path: "{{restic_download_path}}{{restic_decompressed_name}}"
+    path: "{{restic_download_path}}/{{restic_decompressed_name}}"
   register: restic_download
 
 - name: install restic ~ skip if is already installed
@@ -49,7 +55,7 @@
     - name: ansible-backup | install restic |  Download restic
       get_url:
         url: "{{ resitc_tarball_url }}"
-        dest: "{{restic_download_path}}"
+        dest: "{{restic_download_path}}/"
 
     - name: ansible-backup | install restic | extract restic
       command: bzip2 -d restic_0.12.1_linux_amd64.bz2
