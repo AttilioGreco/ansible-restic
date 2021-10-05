@@ -25,6 +25,8 @@ restic_backend_configuration: |
 restic_backup_path: "/var/backups/restic_{{utility}}"
 
 utility: database
+# keep backup in time
+keep_hotbackup: 1
 
 # restic hooks
 restic_before_forget_script: ""
@@ -37,6 +39,7 @@ restic_before_notification_script: ""
 restic_after_notification_script: ""
 
 restic_start_backup_time: "*-*-* 04:40:00"
+backup_jobs_number: "{{ansible_facts['processor_cores']}}"
 
 restic_backup_script: |
   echo "start postgres backup"
@@ -48,30 +51,31 @@ restic_backup_script: |
   PROMETHEUS_RESULT_FILE=$metrics_path/prometheus_metrics.prom
   # reset metrics
   > $PROMETHEUS_RESULT_FILE
-  echo "postgres_backup_last_time{host=\"$HOSTNAME\"} $DATE" >> $PROMETHEUS_RESULT_FILE
+  echo "postgres_backup_last_run{host=\"$HOSTNAME\"} $DATE" >> $PROMETHEUS_RESULT_FILE
   for database in ${DATABASE_LIST}
   do
     echo "postgres_backup{host=\"$HOSTNAME\", database=\"$database\"} 1" >> $PROMETHEUS_RESULT_FILE
     echo "Starting backup of ${database}"
     start=`date +%s`
-    su - postgres -c "pg_dump $database > ${DATABASE_BACKUP_PATH}/${database}_${DATE}.sql"
+    su - postgres -c "pg_dump --create $database -Fd --jobs={{backup_jobs_number}} -f $DATABASE_BACKUP_PATH/${database}_${DATE}"
 
     if [[ "$?" == "0" ]]
     then
         echo "postgres_backup_database_status{host=\"$HOSTNAME\", database=\"$database\"} 1" >> $PROMETHEUS_RESULT_FILE
-        DATABASE_SIZE=$(stat --printf="%s" /${DATABASE_BACKUP_PATH}/${database}_${DATE}.sql)
-        echo "postgres_backup_database_size{host=\"$HOSTNAME\", database=\"$database\"}" $DATABASE_SIZE >> $PROMETHEUS_RESULT_FILE
-        bzip2 ${DATABASE_BACKUP_PATH}/${database}_${DATE}.sql
-        DATABASE_SIZE_COMPRESSED=$(stat --printf="%s" /${DATABASE_BACKUP_PATH}/${database}_${DATE}.sql.bz2)
-        echo postgres_backup_database_size_compressed{host=\"$HOSTNAME\", database=\"$database\"} $DATABASE_SIZE_COMPRESSED >> $PROMETHEUS_RESULT_FILE
     else
         echo postgres_backup_status{host=\"$HOSTNAME\", database=\"$database\"} 0 >> $PROMETHEUS_RESULT_FILE
     fi
     end=`date +%s`
     runtime=$((end-start))
-    echo "postgres_database_backup_time{host=\"$HOSTNAME\", database=\"$database\"} $runtime" >> $PROMETHEUS_RESULT_FILE
+    echo "postgres_database_backup_duration{host=\"$HOSTNAME\", database=\"$database\"} $runtime" >> $PROMETHEUS_RESULT_FILE
     echo "postgres_database_backup_last_run{host=\"$HOSTNAME\", database=\"$database\"} `date +%s`" >> $PROMETHEUS_RESULT_FILE
   done
+  su - postgres -c "pg_dumpall --globals-only > ${DATABASE_BACKUP_PATH}/schema_$DATE.sql"
+  if [[ "$?" == "0" ]]
+  then
+    echo "postgres_schema_backup_last_run{host=\"$HOSTNAME\", database=\"schema\"} `date +%s`" >> $PROMETHEUS_RESULT_FILE
+  fi
+  find ${DATABASE_BACKUP_PATH} -mindepth 1 -maxdepth 1 -type d -mtime +{{keep_hotbackup}} | xargs rm -rf
 
 restic_XDG_CACHE_HOME: /var/backups/restic_cache
 restic_forget_time:

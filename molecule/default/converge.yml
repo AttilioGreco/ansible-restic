@@ -2,7 +2,6 @@
 - name: Converge
   hosts: all
   become: true
-  tasks:
   roles:
     - role: ansible-backup
       restic_backup_path: /var/lib/pgsql/13/backups/
