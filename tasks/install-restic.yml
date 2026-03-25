@@ -68,20 +68,16 @@
         chdir: "{{restic_download_path}}"
   when: not restic_download.stat.exists
 
-- name: ansible-backup | install restic | show path
-  debug:
-    msg: "{{restic_download}}"
-
 - name: ansible-backup | install restic | give executions permission
   ansible.builtin.file:
-    path: "{{restic_download.stat.path}}"
+    path: "{{restic_download_path}}/{{restic_decompressed_name}}"
     owner: root
     group: root
     mode: "550"
 
-- name: ansible-backup | install restic |  create link file
+- name: ansible-backup | install restic | create link file
   ansible.builtin.file:
-    src: "{{restic_download.stat.path}}"
+    src: "{{restic_download_path}}/{{restic_decompressed_name}}"
     dest: "{{ restic_binary_path }}/restic"
     owner: root
     group: root

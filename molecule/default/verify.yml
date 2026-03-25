@@ -35,6 +35,6 @@
 
     - name: Verify | check restic backend config exists
       ansible.builtin.stat:
-        path: /etc/restic/s3.config
+        path: /etc/restic/restic.env
       register: backend_config
       failed_when: not backend_config.stat.exists

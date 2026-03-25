@@ -26,3 +26,20 @@
           - vim
           - net-tools
         state: present
+
+    - name: molecule | prepare | create restic config directory
+      ansible.builtin.file:
+        path: /etc/restic
+        state: directory
+        mode: "0700"
+
+    - name: molecule | prepare | create restic env file for testing
+      ansible.builtin.copy:
+        content: |
+          RESTIC_REPOSITORY=/tmp/restic-repo
+          RESTIC_PASSWORD=testpassword
+          XDG_CACHE_HOME=/var/backups/restic_cache
+        dest: /etc/restic/restic.env
+        owner: root
+        group: root
+        mode: "0600"

@@ -14,13 +14,7 @@ restic_version: latest
 restic_download_os: linux
 restic_architecture_path_os: amd64
 resitc_tarball_url: "https://github.com/restic/restic/releases/download/{{restic_tag}}/restic_{{restic_tag | regex_replace('^v', '') }}_{{restic_download_os}}_{{restic_architecture_path_os}}.bz2"
-restic_backend_configurations_path: "{{restic_configuration_path}}/s3.config"
-restic_backend_configuration: |
-  # https://restic.readthedocs.io/en/latest/080_examples.html
-  export RESTIC_REPOSITORY="s3:https://s3.amazonaws.com/restic-demo"
-  export AWS_ACCESS_KEY_ID="***"
-  export AWS_SECRET_ACCESS_KEY="***"
-  export RESTIC_PASSWORD="***"
+restic_backend_configurations_path: "{{restic_configuration_path}}/restic.env"
 
 restic_backup_path: "/var/backups/restic_{{utility}}"
 

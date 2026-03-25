@@ -6,13 +6,15 @@
     group: root
     mode: 0544
 
-- name: install backend script
-  ansible.builtin.copy:
-    content: "{{restic_backend_configuration}}"
-    dest: "{{restic_backend_configurations_path}}"
-    owner: root
-    group: root
-    mode: "0600"
+- name: check restic env file exists
+  ansible.builtin.stat:
+    path: "{{restic_backend_configurations_path}}"
+  register: restic_env_file
+
+- name: warn if restic env file is missing
+  ansible.builtin.fail:
+    msg: "EnvironmentFile {{ restic_backend_configurations_path }} not found. Deploy it manually or via vault before running this role."
+  when: not restic_env_file.stat.exists
 
 - name: create systemd service unit
   template:

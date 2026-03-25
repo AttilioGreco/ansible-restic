@@ -2,21 +2,10 @@
 
 ## Dipendenze:
 ## 1) restic
-## 2) jq
 ## Opzionale: fusermount (pkg: fuse su CentOS e Ubuntu). Richiesto solo per `restic mount`.
 
-
-source {{restic_backend_configurations_path}}
-
-
-## Per favore NON MODIFICATE la variabile RESTIC_PASSWORD.
-## Viceversa i backup non saranno ripristinabili.
-
-export XDG_CACHE_HOME="{{restic_XDG_CACHE_HOME}}"
-
-## L'init va dato SOLO la prima volta. Se il repo su
-## Swift esiste già, restituisce comunque errore.
-#/usr/local/bin/restic init
+## Le variabili d'ambiente (RESTIC_REPOSITORY, AWS_*, RESTIC_PASSWORD)
+## vengono iniettate via EnvironmentFile nella unit systemd.
 
 ## Esegue il backup dei database.
 

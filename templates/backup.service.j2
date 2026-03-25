@@ -5,6 +5,7 @@ Description=Backup {{utility}} system with Restic
 User=root
 Group=root
 Type=simple
+EnvironmentFile={{restic_backend_configurations_path}}
 ExecStart=/bin/bash "{{restic_script_path}}/backup-{{utility.lower()}}.sh"
 
 [Install]
