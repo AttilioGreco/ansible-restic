@@ -1,23 +1,28 @@
-- name: prepare
+---
+- name: install base packages
   hosts: all
-  become: true
+  gather_facts: false
   tasks:
-    - name: prepare | install base pakage pip3 and GCC
-      dnf:
+    - name: molecule | prepare | bootstrap python3
+      ansible.builtin.raw: |
+        command -v python3 || dnf install -y python3
+      changed_when: false
+
+    - name: molecule | prepare | install epel
+      ansible.builtin.package:
         name:
-          - python3-pip
-          - python3-devel
-          - gcc
+          - epel-release
 
-    - name: Upgrade all packages
-      dnf:
-        name: "*"
-        state: latest
-
-    - name: prepare | create ansible requirements
-      ansible.builtin.file:
-        path: /home/molecule/ansible
-        state: directory
-        owner: molecule
-        group: molecule
-        mode: "0644"
+    - name: molecule | prepare | install base packages
+      ansible.builtin.package:
+        name:
+          - tar
+          - unzip
+          - bzip2
+          - bzip2-libs
+          - python3
+          - nc
+          - bind-utils
+          - vim
+          - net-tools
+        state: present

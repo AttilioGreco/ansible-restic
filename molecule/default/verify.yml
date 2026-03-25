@@ -1,32 +1,40 @@
 ---
-# This is an example playbook to execute Ansible tests.
-
 - name: Verify
   hosts: all
-  vars:
-    ansible_python_interpreter:
+  gather_facts: false
   tasks:
-  - name: Verify | check postgres is running
-    ansible.builtin.systemd:
-      name: postgresql-13.service
-      state: started
+    - name: Verify | check restic binary exists
+      ansible.builtin.stat:
+        path: /usr/local/bin/restic
+      register: restic_bin
+      failed_when: not restic_bin.stat.exists
 
-  - name: create sql testing file
-    ansible.builtin.copy:
-      content: |
-        CREATE USER psql_testing_user with NOSUPERUSER CREATEDB NOCREATEROLE LOGIN encrypted password 'veryS3cr3t';
-        CREATE DATABASE psql_test_db;
-        ALTER DATABASE psql_test_db OWNER TO psql_testing_user;
-      dest: /tmp/create_db_and_use.sql
+    - name: Verify | check restic is executable
+      ansible.builtin.command: /usr/local/bin/restic version
+      register: restic_version
+      changed_when: false
+      failed_when: restic_version.rc != 0
 
-  - name: Verify | create pgsql users and database
-    become: yes
-    become_user: postgres
-    ansible.builtin.shell: |
-      psql -f /tmp/create_db_and_use.sql
+    - name: Verify | check backup timer is enabled
+      ansible.builtin.systemd:
+        name: "backup-database.timer"
+      register: backup_timer
+      failed_when: backup_timer.status.UnitFileState != 'enabled'
 
-  - name: Verify | create EXTENSION postgis
-    become: yes
-    become_user: postgres
-    ansible.builtin.shell: |
-      psql psql_test_db -c 'CREATE EXTENSION postgis;'
+    - name: Verify | check backup service unit exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/backup-database.service
+      register: backup_service
+      failed_when: not backup_service.stat.exists
+
+    - name: Verify | check backup script exists
+      ansible.builtin.stat:
+        path: /opt/restic/script/backup-database.sh
+      register: backup_script
+      failed_when: not backup_script.stat.exists
+
+    - name: Verify | check restic backend config exists
+      ansible.builtin.stat:
+        path: /etc/restic/s3.config
+      register: backend_config
+      failed_when: not backend_config.stat.exists
